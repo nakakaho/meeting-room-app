@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EventController;
 
 // ==================== 接続テスト ====================
 Route::get('/test', function () {
@@ -24,4 +25,9 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
+
+    // ==================== イベントAPI ====================
+    Route::resource('events', EventController::class, [
+        'only' => ['index', 'store', 'show', 'update', 'destroy']
+    ]);
 });
