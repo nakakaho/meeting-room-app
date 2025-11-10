@@ -23,13 +23,13 @@ class EventController extends Controller
         }
 
         $query = Event::where('branch_id', $branchId)
-            ->with('organizer', 'room', 'participants');
+            ->with('organizer', 'room', 'attendees');
 
         // If user_id is provided, filter events where user is organizer or participant
         if ($userId) {
             $query->where(function ($q) use ($userId) {
                 $q->where('organizer_id', $userId)
-                  ->orWhereHas('participants', function ($subQuery) use ($userId) {
+                  ->orWhereHas('attendees', function ($subQuery) use ($userId) {
                       $subQuery->where('user_id', $userId);
                   });
             });
@@ -59,7 +59,7 @@ class EventController extends Controller
         ]);
 
         $event = Event::create($validated);
-        $event->load('organizer', 'room', 'participants');
+        $event->load('organizer', 'room', 'attendees');
 
         return response()->json([
             'success' => true,
@@ -73,7 +73,7 @@ class EventController extends Controller
      */
     public function show($id)
     {
-        $event = Event::with('organizer', 'room', 'participants')->findOrFail($id);
+        $event = Event::with('organizer', 'room', 'attendees')->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -106,7 +106,7 @@ class EventController extends Controller
         }
 
         $event->update($validated);
-        $event->load('organizer', 'room', 'participants');
+        $event->load('organizer', 'room', 'attendees');
 
         return response()->json([
             'success' => true,

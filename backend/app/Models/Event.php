@@ -42,8 +42,9 @@ class Event extends Model
         return $this->belongsTo(Room::class, 'room_id', 'room_id');
     }
 
-    public function participants()
+    public function attendees()
     {
-        return $this->belongsToMany(User::class, 'event_users', 'event_id', 'user_id');
+        return $this->belongsToMany(User::class, 'event_users', 'event_id', 'user_id')
+                    ->withTimestamps();
     }
 }
