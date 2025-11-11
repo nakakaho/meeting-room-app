@@ -34,8 +34,12 @@ export const userAPI = {
     api.put(`/users/${id}/settings`, settings),
   
   // パスワード変更
-  changePassword: (id, current_password, new_password, confirm_password) => 
-    api.post(`/users/${id}/password`, { current_password, new_password, confirm_password }),
+  changePassword: (id, currentPassword, newPassword, confirmPassword) => 
+    api.post(`/users/${id}/password`, { 
+      current_password: currentPassword, 
+      new_password: newPassword, 
+      confirm_password: confirmPassword 
+    }),
   
   // アカウント削除
   delete: (id) => 
@@ -84,15 +88,15 @@ export const eventAPI = {
 export const adminAPI = {
   // ユーザー一覧取得
   getAllUsers: () => 
-    api.get('/users/all'),
+    api.get('/admin/users'),
   
   // 権限変更
   changeRole: (id, role) => 
-    api.patch(`/users/all/${id}`, { role }),
+    api.patch(`/admin/users/${id}/role`, { role }),
   
   // ユーザー削除
   deleteUser: (id) => 
-    api.delete(`/users/all/${id}`),
+    api.delete(`/admin/users/${id}`),
 };
 
 // ==================== テスト用 ====================

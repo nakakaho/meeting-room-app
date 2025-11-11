@@ -32,13 +32,16 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login(email, password);
-      const { token, user_id } = response.data;
+      console.log('Full login response:', response.data); // デバッグ
+      
+      const { token, user: userData } = response.data;
+      
+      console.log('Extracted user data:', userData); // デバッグ
       
       // トークンを保存
       localStorage.setItem('auth_token', token);
       
-      // ユーザー情報を保存（仮）
-      const userData = { id: user_id, email };
+      // ユーザー情報を保存
       localStorage.setItem('user', JSON.stringify(userData));
       
       setUser(userData);
