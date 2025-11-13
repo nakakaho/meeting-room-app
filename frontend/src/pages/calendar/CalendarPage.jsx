@@ -16,6 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { roomAPI, eventAPI } from '../../api';
 import WeekCalendar from '../../components/calendar/WeekCalendar';
 import EventDialog from '../../components/calendar/EventDialog';
+import Header from '../../components/layout/Header';
 
 const CalendarPage = () => {
   const { user } = useAuth();
@@ -26,7 +27,7 @@ const CalendarPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
-
+  
   // 部屋一覧取得
   useEffect(() => {
     const fetchRooms = async () => {

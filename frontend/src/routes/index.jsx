@@ -1,9 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Header from '../components/layout/Header';
+import { Box } from '@mui/material';
 
 // ページコンポーネント（後で作成）
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
 import CalendarPage from '../pages/calendar/CalendarPage';
 import AdminPage from '../pages/admin/AdminPage';
 import UserSettingsPage from '../pages/user/UserSettingsPage';
@@ -12,7 +16,14 @@ import MyBookingsPage from '../pages/user/MyBookingsPage';
 // 認証が必要なルートを保護
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  return isAuthenticated ? (
+    <>
+      <Header />
+      {children}
+    </>
+  ) : (
+    <Navigate to="/login" />
+  );
 };
 
 // 管理者専用ルート
@@ -30,7 +41,12 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/calendar" />;
   }
   
-  return children;
+  return (
+    <>
+      <Header />
+      {children}
+    </>
+  );
 };
 
 const AppRoutes = () => {
@@ -40,6 +56,8 @@ const AppRoutes = () => {
         {/* 公開ルート */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         
         {/* 認証必須ルート */}
         <Route 

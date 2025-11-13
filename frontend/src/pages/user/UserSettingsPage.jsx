@@ -18,6 +18,7 @@ import {
 import { Save as SaveIcon } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { userAPI } from '../../api';
+import NotificationSettings from '../../components/user/NotificationSettings';
 
 const UserSettingsPage = () => {
   const { user, logout } = useAuth();
@@ -264,6 +265,7 @@ const UserSettingsPage = () => {
             }
             label="全室利用状況通知"
           />
+          {/* <NotificationSettings user={user} onUpdate={handleSettingsUpdate} /> */}
         </Box>
 
         <Box sx={{ mt: 3 }}>

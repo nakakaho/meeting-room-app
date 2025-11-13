@@ -67,6 +67,14 @@ const LoginPage = () => {
               ログイン
             </Button>
             
+            <Box sx={{ textAlign: 'center', mb: 1 }}>
+              <Link to="/forgot-password" style={{ textDecoration: 'none' }}>
+                <Typography color="primary" variant="body2">
+                  パスワードを忘れた方
+                </Typography>
+              </Link>
+            </Box>
+            
             <Box sx={{ textAlign: 'center' }}>
               <Link to="/register" style={{ textDecoration: 'none' }}>
                 <Typography color="primary">

@@ -6,6 +6,8 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\NotificationController;
 
 // ==================== 接続テスト ====================
 Route::get('/test', function () {
@@ -19,6 +21,8 @@ Route::get('/test', function () {
 // ==================== 認証API（認証不要） ====================
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/password-reset', [PasswordResetController::class, 'sendResetEmail']);
+Route::post('/password-update', [PasswordResetController::class, 'resetPassword']);
 
 // ==================== 部屋API（公開） ====================
 Route::get('/rooms', [RoomController::class, 'index']);
@@ -54,4 +58,8 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/admin/users', [AdminController::class, 'getAllUsers']);
     Route::patch('/admin/users/{id}/role', [AdminController::class, 'changeRole']);
     Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
+
+    // 通知
+    Route::get('/notifications/my-schedule', [NotificationController::class, 'getMyScheduleNotifications']);
+    Route::get('/notifications/all-rooms', [NotificationController::class, 'getAllRoomsNotifications']);
 });
