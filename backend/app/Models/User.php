@@ -5,11 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens; // ⭐ 追加
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens; // ⭐ HasApiTokensを追加
 
     protected $fillable = [
         'branch_id',
@@ -52,7 +53,8 @@ class User extends Authenticatable implements JWTSubject
 
     public function events()
     {
-        return $this->belongsToMany(Event::class, 'event_users', 'user_id', 'event_id');
+        return $this->belongsToMany(Event::class, 'event_users', 'user_id', 'event_id')
+                    ->withTimestamps();
     }
 
     public function organizedEvents()

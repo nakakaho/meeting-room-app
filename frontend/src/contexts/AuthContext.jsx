@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   // セッション延長タイマー
   useEffect(() => {
     if (isAuthenticated && user) {
-      // 50分ごとにトークンをリフレッシュ（JWT有効期限が1時間の場合）
+      // ⭐ 29日ごとにトークンをリフレッシュ（有効期限30日の場合）
       const refreshInterval = setInterval(async () => {
         try {
           console.log('トークンを自動リフレッシュします');
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
           // リフレッシュ失敗時はログアウト
           logout();
         }
-      }, 50 * 60 * 1000); // 50分
+      }, 29 * 24 * 60 * 60 * 1000); // ⭐ 29日（有効期限30日の1日前）
 
       return () => clearInterval(refreshInterval);
     }
@@ -41,24 +41,30 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
       const savedUser = localStorage.getItem('user');
 
+      console.log('🔐 認証初期化:', { hasToken: !!token, hasUser: !!savedUser });
+
       if (token && savedUser) {
         try {
           const userData = JSON.parse(savedUser);
           setUser(userData);
           setIsAuthenticated(true);
+          console.log('✅ ユーザー情報を復元しました:', userData);
           
           // トークンの有効性を確認（バックグラウンドで実行）
           // ⭐ 初回ロード時のみ実行
           verifyToken();
         } catch (error) {
-          console.error('ユーザー情報の復元に失敗:', error);
+          console.error('❌ ユーザー情報の復元に失敗:', error);
           // パースエラーの場合のみログアウト
           if (error instanceof SyntaxError) {
             logout();
           }
         }
+      } else {
+        console.log('⚠️ トークンまたはユーザー情報がありません');
       }
       
+      // ⭐ 必ずloadingをfalseにする
       setLoading(false);
     };
 
