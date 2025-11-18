@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // ⭐ 追加
-use Tymon\JWTAuth\Contracts\JWTSubject;
+use Laravel\Sanctum\NewAccessToken;
 
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasApiTokens; // ⭐ HasApiTokensを追加
 
@@ -26,6 +26,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 
     protected $casts = [
@@ -33,17 +34,6 @@ class User extends Authenticatable implements JWTSubject
         'notify_my_schedule' => 'boolean',
         'notify_all_schedule' => 'boolean',
     ];
-
-    // JWT用メソッド
-    public function getJWTIdentifier()
-    {
-        return $this->getKey();
-    }
-
-    public function getJWTCustomClaims()
-    {
-        return [];
-    }
 
     // リレーション
     public function branch()

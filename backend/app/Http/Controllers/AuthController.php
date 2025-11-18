@@ -32,7 +32,7 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
             
-            // ⭐ 有効期限はconfig/sanctum.phpで設定
+            // 「無期限＋複数端末で安全動作」の tokens が作れる
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
@@ -78,16 +78,22 @@ class AuthController extends Controller
     public function refresh(Request $request)
     {
         $user = $request->user();
-        
-        // 現在のトークンを削除
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => '認証が必要です'
+            ], 401);
+        }
+
+        // 現在の端末の token を削除
         $request->user()->currentAccessToken()->delete();
-        
-        // 新しいトークンを発行（有効期限はconfig/sanctum.phpで設定）
-        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // 新規 token
+        $newToken = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'token' => $token
+            'token' => $newToken
         ]);
     }
 

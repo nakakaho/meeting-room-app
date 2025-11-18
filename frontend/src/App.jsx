@@ -6,6 +6,7 @@ import AppRoutes from './routes';
 import notificationService from './api/notificationService';
 import notificationChecker from './api/notificationChecker';
 
+
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
 
