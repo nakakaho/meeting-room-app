@@ -31,7 +31,7 @@ Route::get('/rooms', [RoomController::class, 'index']);
 Route::get('/events', [EventController::class, 'index']);
 
 // ==================== 認証API（認証必須） ====================
-Route::middleware('auth:api')->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
     // 認証
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
