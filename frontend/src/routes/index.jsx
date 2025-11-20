@@ -1,175 +1,130 @@
-// src/routes/index.jsx (修正版)
+// src/routes/index.jsx
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-// ページコンポーネント
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
-import CalendarPage from '../pages/calendar/CalendarPage';
+import CalendarPageNew from '../pages/calendar/CalendarPageNew';
 import MyBookingsPage from '../pages/user/MyBookingsPage';
 import UserSettingsPage from '../pages/user/UserSettingsPage';
 import AdminPage from '../pages/admin/AdminPage';
 
-// レイアウト
 import Header from '../components/layout/Header';
 
-// 保護されたルートコンポーネント
+/* ---------------------------------------------
+   Protected Route（ログイン必須）
+---------------------------------------------- */
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-  const location = useLocation();
 
-  // ⭐ ローディング中は何も表示しない（重要）
   if (loading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
-        Loading...
-      </div>
-    );
+    return <div className="loading">Loading...</div>;
   }
 
-  // 認証されていない場合のみログイン画面へ
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  // 認証されている場合は子コンポーネントを表示
   return (
     <>
-      <Header />
+      {/* <Header /> */}
       {children}
     </>
   );
 }
 
-// 公開ルートコンポーネント（ログイン済みならリダイレクト）
+/* ---------------------------------------------
+   Public Route（未ログインのみ）
+---------------------------------------------- */
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
-  // ⭐ ローディング中は何も表示しない
   if (loading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
-        Loading...
-      </div>
-    );
+    return <div className="loading">Loading...</div>;
   }
 
-  // ログイン済みの場合はカレンダーへ
   if (isAuthenticated) {
     return <Navigate to="/calendar" replace />;
   }
 
-  // 未ログインの場合は公開ページを表示
   return children;
 }
 
+/* ---------------------------------------------
+   Routes
+---------------------------------------------- */
 function AppRoutes() {
   return (
     <BrowserRouter>
+      <Header />
       <Routes>
-        {/* 公開ルート */}
-        <Route 
-          path="/login" 
+
+        {/* 公開ページ（非ログインOK） */}
+        <Route
+          path="/calendar"
+          element={<CalendarPageNew />}
+        />
+
+        {/* 認証不要 & ログイン済みならリダイレクト */}
+        <Route
+          path="/login"
           element={
             <PublicRoute>
               <LoginPage />
             </PublicRoute>
-          } 
+          }
         />
-        <Route 
-          path="/register" 
+        <Route
+          path="/register"
           element={
             <PublicRoute>
               <RegisterPage />
             </PublicRoute>
-          } 
+          }
         />
-        <Route 
-          path="/forgot-password" 
-          element={
-            <PublicRoute>
-              <ForgotPasswordPage />
-            </PublicRoute>
-          } 
+        <Route
+          path="/forgot-password"
+          element={<ForgotPasswordPage />}
         />
-        <Route 
-          path="/reset-password/:token" 
-          element={
-            <PublicRoute>
-              <ResetPasswordPage />
-            </PublicRoute>
-          } 
+        <Route
+          path="/reset-password"
+          element={<ResetPasswordPage />}
         />
 
-        {/* 保護されたルート */}
-        <Route 
-          path="/calendar" 
-          element={
-            <ProtectedRoute>
-              <CalendarPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/my-bookings" 
+        {/* ログイン必須 */}
+        <Route
+          path="/my-bookings"
           element={
             <ProtectedRoute>
               <MyBookingsPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/user/my-bookings" 
-          element={
-            <ProtectedRoute>
-              <MyBookingsPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/settings" 
+        <Route
+          path="/settings"
           element={
             <ProtectedRoute>
               <UserSettingsPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/user/settings" 
-          element={
-            <ProtectedRoute>
-              <UserSettingsPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
             <ProtectedRoute>
               <AdminPage />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        {/* デフォルトルート */}
+        {/* デフォルト */}
         <Route path="/" element={<Navigate to="/calendar" replace />} />
-        
-        {/* 404 */}
         <Route path="*" element={<Navigate to="/calendar" replace />} />
+
       </Routes>
     </BrowserRouter>
   );

@@ -55,6 +55,10 @@ class EventController extends Controller
                 'event_id' => $event->event_id,
                 'branch_id' => $event->branch_id,
                 'organizer_id' => $event->organizer_id,
+                'organizer' => [
+                    'id' => $event->organizer->id,
+                    'name' => $event->organizer->name,
+                ],
                 'room_id' => $event->room_id,
                 'room_name' => $event->room->room_name,
                 'start_time' => $event->start_time->setTimezone($timezone)->toDateTimeString(),
