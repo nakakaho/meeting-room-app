@@ -1,3 +1,4 @@
+console.log("CalendarPageNew 表示された");
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -17,7 +18,6 @@ import {
 } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api/axios';
-import EventDetailModal from './EventDetailModal';
 import EventFormModal from './EventFormModal';
 import './CalendarPage.css';
 
@@ -47,8 +47,8 @@ const CalendarPageNew = () => {
 
   //branch_id が URL にあれば優先してセット
   const branchId =
-    parseInt(branchIdFromURL) ||
-    user?.branch_id ||
+    (branchIdFromURL ? parseInt(branchIdFromURL) : null) ??
+    user?.branch_id ??
     1;
 
   // 会議室取得
@@ -65,11 +65,11 @@ const CalendarPageNew = () => {
     } catch (error) {
       console.error('部屋取得エラー:', error);
     }
-  }, [user, selectedRoom]);
+  }, [branchId]);
 
   // 予約データを取得
-  const fetchEvents = useCallback(async () => {
-    if (!user) return;
+  const fetchEvents = useCallback(async (roomId = selectedRoom) => {
+    console.log("🔥 fetchEvents 実行 branch:", branchId, " selectedRoom:", selectedRoom);
     try {
       const response = await api.get('/events', {
         params: { branch_id: branchId }
@@ -77,16 +77,10 @@ const CalendarPageNew = () => {
 
       if (response.data.success) {
         const formattedEvents = response.data.events.map(event => {
-          // 予約者名を取得（organizer があるならそれを優先、なければ attendees から探す）
           let organizerName = '不明';
 
           if (event.organizer && event.organizer.name) {
             organizerName = event.organizer.name;
-          } else if (event.attendees && event.attendees.length > 0) {
-            const organizer = event.attendees.find(a => a.user_id === event.organizer_id);
-            if (organizer && organizer.name) {
-              organizerName = organizer.name;
-            }
           }
 
           return {
@@ -101,40 +95,57 @@ const CalendarPageNew = () => {
               memo: event.memo,
               attendees: event.attendees || [],
               organizer_name: organizerName,
-              raw: event, // 必要な元データを保持
+              raw: event,
             }
           };
         });
 
-        // ⭐ 全件を保持（現在の利用状況はこちらを参照）
+        console.log("📦 全イベント件数:", formattedEvents.length);
+
+        // 全件保持
         setAllEvents(formattedEvents);
 
-        // ⭐ カレンダー表示用（部屋ごとにフィルタ）
+        // フィルタ
         const filtered = selectedRoom
-          ? formattedEvents.filter(e => e.resource.room_id === selectedRoom)
+          ? formattedEvents.filter(e => Number(e.resource.room_id) === Number(selectedRoom))
           : formattedEvents;
+
+          console.log("🎯 フィルタ後件数:", filtered.length);
 
         setEvents(filtered);
       }
     } catch (error) {
       console.error('予約取得エラー:', error);
     }
-  }, [user, selectedRoom]);
+  }, [branchId]);
 
-  useEffect(() => {
-      fetchRooms();
-      fetchEvents();
-  }, [user, fetchRooms, fetchEvents]);
 
   // 選択した部屋が変わったらイベントを再取得（rooms が入った後など）
   useEffect(() => {
+    fetchRooms();
     fetchEvents();
-  }, [selectedRoom, user, fetchEvents]);
+  }, [branchId]);
+
+  useEffect(() => {
+    if (allEvents.length > 0) {
+      const filtered = selectedRoom
+        ? allEvents.filter(e => Number(e.resource.room_id) === Number(selectedRoom))
+        : allEvents;
+
+      setEvents(filtered);
+    }
+  }, [selectedRoom, allEvents]);
 
   // イベントクリック時
   const handleSelectEvent = (event) => {
-    setSelectedEvent(event);
-    setIsDetailModalOpen(true);
+    if (!user) {
+      alert("ログインが必要です");
+      window.location.href = "/login";
+      return;
+    }
+
+    setFormEvent(event);
+    setIsFormModalOpen(true);
   };
 
   // 編集は詳細モーダルからコールされる（selectedEvent はそのまま）
@@ -147,6 +158,12 @@ const CalendarPageNew = () => {
 
   // タイムスロット選択時（ドラッグで範囲選択 / クリック）
   const handleSelectSlot = (slotInfo) => {
+    if (!user) {
+      alert("ログインが必要です");
+      window.location.href = "/login";
+      return;
+    }
+
     setSelectedSlot(slotInfo);
     setFormEvent(null);
     setIsFormModalOpen(true);
@@ -154,6 +171,12 @@ const CalendarPageNew = () => {
 
   // 新規作成ボタン
   const handleCreateClick = () => {
+    if (!user) {
+      alert("ログインが必要です");
+      window.location.href = "/login";
+      return;
+    }
+
     setSelectedSlot(null);
     setFormEvent(null);
     setIsFormModalOpen(true);
@@ -161,10 +184,39 @@ const CalendarPageNew = () => {
 
   // イベントのスタイル設定（自分/他人で色分け）
   const eventStyleGetter = (event) => {
-    const isMyEvent = event.resource.organizer_id === user?.id;
-    
+    const organizerId = event.resource?.organizer_id;
+    const attendees = event.resource?.attendees || [];
+
+    // ⭐ 未ログインは全部青
+    if (!user) {
+      return {
+        style: {
+          backgroundColor: '#39e572ff',
+          borderRadius: '4px',
+          opacity: 0.9,
+          color: 'white',
+          border: '0px',
+          display: 'block',
+          padding: '2px 5px',
+          fontSize: '12px',
+        }
+      };
+    }
+
+     // ⭐ ログインしてる時の色分け
+    const isMyEvent = organizerId === user?.id;
+    const isAttendee = attendees.some(a => a.user_id === user?.id);
+
+    let backgroundColor = '#9e9e9e'; // 他人（デフォルト）
+
+    if (isMyEvent) {
+      backgroundColor = '#1976d2';   // 主催者（青）
+    } else if (isAttendee) {
+      backgroundColor = '#ff6830ff';   // 参加者（緑）
+    }
+
     const style = {
-      backgroundColor: isMyEvent ? '#1976d2' : '#9e9e9e',
+      backgroundColor,
       borderRadius: '4px',
       opacity: 0.9,
       color: 'white',
@@ -213,7 +265,7 @@ const CalendarPageNew = () => {
             <Select
               value={selectedRoom}
               label="会議室を選択"
-              onChange={(e) => setSelectedRoom(e.target.value)}
+              onChange={(e) => setSelectedRoom(Number(e.target.value))}
             >
               <MenuItem value="">会議室を選択</MenuItem>
               {rooms.map(r => (
@@ -298,20 +350,6 @@ const CalendarPageNew = () => {
           style={{ height: '100%' }}
         />
       </Box>
-
-      {/* 予約詳細モーダル */}
-      {selectedEvent && (
-        <EventDetailModal
-          open={isDetailModalOpen}
-          event={selectedEvent}
-          onClose={() => {
-            setIsDetailModalOpen(false);
-            setSelectedEvent(null);
-          }}
-          onUpdate={fetchEvents}
-          onEdit={() => handleEditEvent(selectedEvent)}
-        />
-      )}
 
       {/* 予約作成/編集モーダル */}
       <EventFormModal

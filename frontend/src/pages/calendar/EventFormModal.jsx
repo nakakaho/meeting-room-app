@@ -18,6 +18,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api/axios';
 import moment from 'moment';
 
+const minuteOptions = ["00", "15", "30", "45"];
+
 const EventFormModal = ({ open, slot, event, defaultRoomId, onClose, onSubmit }) => {
   const { user } = useAuth();
   const [rooms, setRooms] = useState([]);
@@ -152,33 +154,153 @@ const EventFormModal = ({ open, slot, event, defaultRoomId, onClose, onSubmit })
             </Select>
           </FormControl>
 
-          <TextField
-            fullWidth
-            label="開始日時"
-            type="datetime-local"
-            value={moment(formData.start_time).format('YYYY-MM-DDTHH:mm')}
-            onChange={(e) => setFormData({
-              ...formData,
-              start_time: moment(e.target.value).format('YYYY-MM-DD HH:mm:ss')
-            })}
-            InputLabelProps={{ shrink: true }}
-            sx={{ mt: 2 }}
-            required
-          />
+          {/* 開始日時 */}
+          <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+            {/* 日付 */}
+            <TextField
+              label="開始日時"
+              type="date"
+              value={moment(formData.start_time).format("YYYY-MM-DD")}
+              onChange={(e) => {
+                const date = e.target.value;
+                const startHour = moment(formData.start_time).format("HH");
+                const startMinute = moment(formData.start_time).format("mm");
 
-          <TextField
-            fullWidth
-            label="終了日時"
-            type="datetime-local"
-            value={moment(formData.end_time).format('YYYY-MM-DDTHH:mm')}
-            onChange={(e) => setFormData({
-              ...formData,
-              end_time: moment(e.target.value).format('YYYY-MM-DD HH:mm:ss')
-            })}
-            InputLabelProps={{ shrink: true }}
-            sx={{ mt: 2 }}
-            required
-          />
+                const endHour = moment(formData.end_time).format("HH");
+                const endMinute = moment(formData.end_time).format("mm");
+
+                setFormData({
+                  ...formData,
+                  start_time: `${date} ${startHour}:${startMinute}:00`,
+                  end_time: `${date} ${endHour}:${endMinute}:00`, // ← 追加！終了日も合わせる
+                });
+              }}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+
+            {/* 時 */}
+            <FormControl fullWidth>
+              {/* <InputLabel>開始時</InputLabel> */}
+              <Select
+                value={moment(formData.start_time).format("HH")}
+                // label="開始時"
+                onChange={(e) => {
+                  const hour = e.target.value;
+                  const date = moment(formData.start_time).format("YYYY-MM-DD");
+                  const minute = moment(formData.start_time).format("mm");
+
+                  setFormData({
+                    ...formData,
+                    start_time: `${date} ${hour}:${minute}:00`,
+                  });
+                }}
+              >
+                {[...Array(24)].map((_, i) => (
+                  <MenuItem key={i} value={String(i).padStart(2, "0")}>
+                    {String(i).padStart(2, "0")}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* 分 */}
+            <FormControl fullWidth>
+              {/* <InputLabel>開始分</InputLabel> */}
+              <Select
+                value={moment(formData.start_time).format("mm")}
+                // label="開始分"
+                onChange={(e) => {
+                  const minute = e.target.value;
+                  const date = moment(formData.start_time).format("YYYY-MM-DD");
+                  const hour = moment(formData.start_time).format("HH");
+
+                  setFormData({
+                    ...formData,
+                    start_time: `${date} ${hour}:${minute}:00`,
+                  });
+                }}
+              >
+                {minuteOptions.map((m) => (
+                  <MenuItem key={m} value={m}>
+                    {m}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* 終了日時 */}
+          <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+            {/* 日付 */}
+            <TextField
+              label="終了日時"
+              type="date"
+              value={moment(formData.end_time).format("YYYY-MM-DD")}
+              onChange={(e) => {
+                const date = e.target.value;
+                const hour = moment(formData.end_time).format("HH");
+                const minute = moment(formData.end_time).format("mm");
+
+                setFormData({
+                  ...formData,
+                  end_time: `${date} ${hour}:${minute}:00`,
+                });
+              }}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+
+            {/* 時 */}
+            <FormControl fullWidth>
+              {/* <InputLabel>終了時</InputLabel> */}
+              <Select
+                value={moment(formData.end_time).format("HH")}
+                // label="終了時"
+                onChange={(e) => {
+                  const hour = e.target.value;
+                  const date = moment(formData.end_time).format("YYYY-MM-DD");
+                  const minute = moment(formData.end_time).format("mm");
+
+                  setFormData({
+                    ...formData,
+                    end_time: `${date} ${hour}:${minute}:00`,
+                  });
+                }}
+              >
+                {[...Array(24)].map((_, i) => (
+                  <MenuItem key={i} value={String(i).padStart(2, "0")}>
+                    {String(i).padStart(2, "0")}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* 分 */}
+            <FormControl fullWidth>
+              {/* <InputLabel>終了分</InputLabel> */}
+              <Select
+                value={moment(formData.end_time).format("mm")}
+                // label="終了分"
+                onChange={(e) => {
+                  const minute = e.target.value;
+                  const date = moment(formData.end_time).format("YYYY-MM-DD");
+                  const hour = moment(formData.end_time).format("HH");
+
+                  setFormData({
+                    ...formData,
+                    end_time: `${date} ${hour}:${minute}:00`,
+                  });
+                }}
+              >
+                {minuteOptions.map((m) => (
+                  <MenuItem key={m} value={m}>
+                    {m}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
 
           <FormControl fullWidth sx={{ mt: 2 }}>
             <InputLabel>参加者</InputLabel>

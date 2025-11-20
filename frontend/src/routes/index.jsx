@@ -1,5 +1,5 @@
 // src/routes/index.jsx
-
+console.log("AppRoutes 読み込み OK");
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,12 +8,13 @@ import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
+
 import CalendarPageNew from '../pages/calendar/CalendarPageNew';
 import MyBookingsPage from '../pages/user/MyBookingsPage';
 import UserSettingsPage from '../pages/user/UserSettingsPage';
 import AdminPage from '../pages/admin/AdminPage';
 
-import Header from '../components/layout/Header';
+import Layout from '../components/layout/Layout';
 
 /* ---------------------------------------------
    Protected Route（ログイン必須）
@@ -21,20 +22,11 @@ import Header from '../components/layout/Header';
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
+  if (loading) return <div className="loading">Loading...</div>;
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  return (
-    <>
-      {/* <Header /> */}
-      {children}
-    </>
-  );
+  return children; // ← ここ重要（Fragmentで包まない）
 }
 
 /* ---------------------------------------------
@@ -43,15 +35,11 @@ function ProtectedRoute({ children }) {
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
+  if (loading) return <div className="loading">Loading...</div>;
 
-  if (isAuthenticated) {
-    return <Navigate to="/calendar" replace />;
-  }
+  if (isAuthenticated) return <Navigate to="/calendar" replace />;
 
-  return children;
+  return children; // ← ここも
 }
 
 /* ---------------------------------------------
@@ -60,72 +48,67 @@ function PublicRoute({ children }) {
 function AppRoutes() {
   return (
     <BrowserRouter>
-      <Header />
-      <Routes>
+      {/* 全ページ共通レイアウト */}
+      <Layout>
+        <Routes>
+          {/* 公開ページ */}
+          <Route path="/calendar" element={<CalendarPageNew />} />
 
-        {/* 公開ページ（非ログインOK） */}
-        <Route
-          path="/calendar"
-          element={<CalendarPageNew />}
-        />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
 
-        {/* 認証不要 & ログイン済みならリダイレクト */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <LoginPage />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <RegisterPage />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={<ForgotPasswordPage />}
-        />
-        <Route
-          path="/reset-password"
-          element={<ResetPasswordPage />}
-        />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <RegisterPage />
+              </PublicRoute>
+            }
+          />
 
-        {/* ログイン必須 */}
-        <Route
-          path="/my-bookings"
-          element={
-            <ProtectedRoute>
-              <MyBookingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <UserSettingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <AdminPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* デフォルト */}
-        <Route path="/" element={<Navigate to="/calendar" replace />} />
-        <Route path="*" element={<Navigate to="/calendar" replace />} />
+          {/* ログイン必須 */}
+          <Route
+            path="/my-bookings"
+            element={
+              <ProtectedRoute>
+                <MyBookingsPage />
+              </ProtectedRoute>
+            }
+          />
 
-      </Routes>
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <UserSettingsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* デフォルト */}
+          <Route path="/" element={<Navigate to="/calendar" replace />} />
+          <Route path="*" element={<Navigate to="/calendar" replace />} />
+
+        </Routes>
+      </Layout>
     </BrowserRouter>
   );
 }

@@ -18,7 +18,7 @@ import { format, parseISO } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
 import { eventAPI } from '../../api';
-import EventDialog from '../../components/calendar/EventDialog';
+import EventFormModal from '../calendar/EventFormModal.jsx';
 
 const MyBookingsPage = () => {
   const { user } = useAuth();
@@ -161,7 +161,7 @@ const MyBookingsPage = () => {
       )}
 
       {/* 予約編集ダイアログ */}
-      <EventDialog
+      <EventFormModal
         open={dialogOpen}
         event={selectedEvent}
         roomId={selectedEvent?.room_id}
