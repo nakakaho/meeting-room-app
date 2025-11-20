@@ -2,6 +2,7 @@
 console.log("AppRoutes 読み込み OK");
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 import LoginPage from '../pages/auth/LoginPage';
@@ -19,6 +20,9 @@ import Layout from '../components/layout/Layout';
 /* ---------------------------------------------
    Protected Route（ログイン必須）
 ---------------------------------------------- */
+/* ---------------------------------------------
+   Protected Route（ログイン必須）
+---------------------------------------------- */
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
@@ -32,6 +36,9 @@ function ProtectedRoute({ children }) {
 /* ---------------------------------------------
    Public Route（未ログインのみ）
 ---------------------------------------------- */
+/* ---------------------------------------------
+   Public Route（未ログインのみ）
+---------------------------------------------- */
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
@@ -42,6 +49,9 @@ function PublicRoute({ children }) {
   return children; // ← ここも
 }
 
+/* ---------------------------------------------
+   Routes
+---------------------------------------------- */
 /* ---------------------------------------------
    Routes
 ---------------------------------------------- */
@@ -114,3 +124,4 @@ function AppRoutes() {
 }
 
 export default AppRoutes;
+
