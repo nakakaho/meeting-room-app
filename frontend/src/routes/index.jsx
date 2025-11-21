@@ -2,7 +2,6 @@
 console.log("AppRoutes 読み込み OK");
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 import LoginPage from '../pages/auth/LoginPage';
@@ -10,7 +9,7 @@ import RegisterPage from '../pages/auth/RegisterPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
 
-import CalendarPageNew from '../pages/calendar/CalendarPageNew';
+import CalendarPage from '../pages/calendar/CalendarPage';
 import MyBookingsPage from '../pages/user/MyBookingsPage';
 import UserSettingsPage from '../pages/user/UserSettingsPage';
 import AdminPage from '../pages/admin/AdminPage';
@@ -62,7 +61,7 @@ function AppRoutes() {
       <Layout>
         <Routes>
           {/* 公開ページ */}
-          <Route path="/calendar" element={<CalendarPageNew />} />
+          <Route path="/calendar" element={<CalendarPage />} />
 
           <Route
             path="/login"

@@ -1,4 +1,4 @@
-console.log("CalendarPageNew 表示された");
+console.log("CalendarPage 表示された");
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -30,7 +30,7 @@ moment.locale('ja', {
 
 const localizer = momentLocalizer(moment);
 
-const CalendarPageNew = () => {
+const CalendarPage = () => {
   const { user } = useAuth();
   const urlParams = new URLSearchParams(window.location.search);
   const branchIdFromURL = urlParams.get('branch_id');
@@ -373,4 +373,4 @@ const CalendarPageNew = () => {
   );
 };
 
-export default CalendarPageNew;
+export default CalendarPage;
