@@ -46,6 +46,19 @@
   font-size: 12px;
   cursor: pointer;
   transition: opacity 0.2s;
+  border: 0.3px solid #e5e5e5 !important; /* ここが重要 */
+  box-sizing: border-box !important; /* border分で幅がずれないように */
+}
+
+/* ▽ 横幅問題を修正（常に100%幅 & 左に揃える） */
+.rbc-event {
+  width: 100% !important;
+  left: 0 !important;
+}
+
+/* ▽ イベントの重なり防止（念のため） */
+.rbc-event-content {
+  width: 100% !important;
 }
 
 .rbc-event:hover {

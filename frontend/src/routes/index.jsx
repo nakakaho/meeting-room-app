@@ -1,7 +1,7 @@
 // src/routes/index.jsx
 console.log("AppRoutes 読み込み OK");
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom'; // ✅ BrowserRouter削除
 import { useAuth } from '../contexts/AuthContext';
 
 import LoginPage from '../pages/auth/LoginPage';
@@ -19,9 +19,6 @@ import Layout from '../components/layout/Layout';
 /* ---------------------------------------------
    Protected Route（ログイン必須）
 ---------------------------------------------- */
-/* ---------------------------------------------
-   Protected Route（ログイン必須）
----------------------------------------------- */
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
@@ -29,12 +26,27 @@ function ProtectedRoute({ children }) {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  return children; // ← ここ重要（Fragmentで包まない）
+  return children;
 }
 
 /* ---------------------------------------------
-   Public Route（未ログインのみ）
+   Admin Route（admin専用）
 ---------------------------------------------- */
+function AdminRoute({ children }) {
+  const { user, isAuthenticated, loading } = useAuth();
+
+  if (loading) return <div className="loading">Loading...</div>;
+
+  // 未ログイン → ログインページへ
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  // ログイン済みだがadminでない → カレンダーへ
+  if (user?.role !== 'admin') return <Navigate to="/calendar" replace />;
+
+  // admin → アクセス許可
+  return children;
+}
+
 /* ---------------------------------------------
    Public Route（未ログインのみ）
 ---------------------------------------------- */
@@ -45,82 +57,74 @@ function PublicRoute({ children }) {
 
   if (isAuthenticated) return <Navigate to="/calendar" replace />;
 
-  return children; // ← ここも
+  return children;
 }
 
-/* ---------------------------------------------
-   Routes
----------------------------------------------- */
 /* ---------------------------------------------
    Routes
 ---------------------------------------------- */
 function AppRoutes() {
   return (
-    <BrowserRouter>
-      {/* 全ページ共通レイアウト */}
-      <Layout>
-        <Routes>
-          {/* 公開ページ */}
-          <Route path="/calendar" element={<CalendarPage />} />
+    // ✅ BrowserRouter削除、Layoutも削除
+    <Routes>
+      {/* 公開ページ */}
+      <Route path="/calendar" element={<CalendarPage />} />
 
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        }
+      />
 
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <RegisterPage />
-              </PublicRoute>
-            }
-          />
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <RegisterPage />
+          </PublicRoute>
+        }
+      />
 
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-          {/* ログイン必須 */}
-          <Route
-            path="/my-bookings"
-            element={
-              <ProtectedRoute>
-                <MyBookingsPage />
-              </ProtectedRoute>
-            }
-          />
+      {/* ログイン必須 */}
+      <Route
+        path="/my-bookings"
+        element={
+          <ProtectedRoute>
+            <MyBookingsPage />
+          </ProtectedRoute>
+        }
+      />
 
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <UserSettingsPage />
-              </ProtectedRoute>
-            }
-          />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <UserSettingsPage />
+          </ProtectedRoute>
+        }
+      />
 
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminPage />
-              </ProtectedRoute>
-            }
-          />
+      {/* ✅ admin専用ルート */}
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminPage />
+          </AdminRoute>
+        }
+      />
 
-          {/* デフォルト */}
-          <Route path="/" element={<Navigate to="/calendar" replace />} />
-          <Route path="*" element={<Navigate to="/calendar" replace />} />
-
-        </Routes>
-      </Layout>
-    </BrowserRouter>
+      {/* デフォルト */}
+      <Route path="/" element={<Navigate to="/calendar" replace />} />
+      <Route path="*" element={<Navigate to="/calendar" replace />} />
+    </Routes>
   );
 }
 
 export default AppRoutes;
-

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Mail\PasswordResetMail; // ✅ 追加
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -13,18 +14,24 @@ use Illuminate\Support\Str;
 class PasswordResetController extends Controller
 {
     /**
-     * パスワードリセットメール送信
+     * パスワードリセットメール送信（多言語対応）
      */
     public function sendResetEmail(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
+        ], [
+            // ✅ カスタムエラーメッセージ
+            'email.required' => __('messages.password_reset.email_required'),
+            'email.email' => __('messages.password_reset.email_invalid_format'),
+            'email.exists' => __('messages.password_reset.email_not_found'),
         ]);
 
         if ($validator->fails()) {
+            // ✅ 最初のエラーメッセージを返す
             return response()->json([
                 'success' => false,
-                'message' => 'このメールアドレスは登録されていません'
+                'message' => $validator->errors()->first('email')
             ], 422);
         }
 
@@ -44,26 +51,32 @@ class PasswordResetController extends Controller
             'created_at' => now(),
         ]);
 
-        // メール送信
+        // ✅ リセットURL生成
         $resetUrl = env('FRONTEND_URL') . '/reset-password?token=' . $token . '&email=' . urlencode($request->email);
 
-        Mail::raw(
-            "パスワードリセットのリクエストを受け付けました。\n\n以下のリンクをクリックして、新しいパスワードを設定してください。\n\n{$resetUrl}\n\nこのリンクは30分間有効です。",
-            function ($message) use ($request) {
-                $message->to($request->email)
-                        ->subject('【会議室予約システム】パスワードリセット');
-            }
-        );
+        // ✅ ユーザーの言語設定に応じてメール送信
+        $locale = $user->lang === 'en' ? 'en' : 'ja';
+
+        try {
+            Mail::to($request->email)
+                ->locale($locale) // ✅ 言語指定
+                ->send(new PasswordResetMail($resetUrl, $locale));
+        } catch (\Exception $e) {
+            \Log::error('Password reset email error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.password_reset.email_send_failed')
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'パスワードリセットメールを送信しました',
-            // 'reset_url' => $resetUrl, // 開発用（本番では削除）
+            'message' => __('messages.password_reset.sent'),
         ]);
     }
 
     /**
-     * パスワードリセット実行
+     * パスワードリセット実行（多言語対応）
      */
     public function resetPassword(Request $request)
     {
@@ -88,7 +101,7 @@ class PasswordResetController extends Controller
         if (!$resetRecord) {
             return response()->json([
                 'success' => false,
-                'message' => '無効なトークンです'
+                'message' => __('messages.password_reset.token_invalid')
             ], 400);
         }
 
@@ -100,7 +113,7 @@ class PasswordResetController extends Controller
         if ($diff > 1800) { // 30分 = 1800秒
             return response()->json([
                 'success' => false,
-                'message' => 'トークンの有効期限が切れています'
+                'message' => __('messages.password_reset.token_expired')
             ], 400);
         }
 
@@ -108,7 +121,7 @@ class PasswordResetController extends Controller
         if (!Hash::check($request->token, $resetRecord->token)) {
             return response()->json([
                 'success' => false,
-                'message' => '無効なトークンです'
+                'message' => __('messages.password_reset.token_invalid')
             ], 400);
         }
 
@@ -125,7 +138,7 @@ class PasswordResetController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'パスワードをリセットしました'
+            'message' => __('messages.password_reset.success')
         ]);
     }
 }

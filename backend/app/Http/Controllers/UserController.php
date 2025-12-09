@@ -10,6 +10,30 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
     /**
+     * ✅ 追加: 同じ拠点のユーザー一覧取得(参加者選択用)
+     * 一般ユーザーも自分の拠点のユーザー一覧を取得可能
+     */
+    public function getBranchUsers(Request $request)
+    {
+        $user = auth()->user();
+        $query = $request->query('query'); // ← 検索ワード（?query=山田）
+
+        $users = User::where('branch_id', $user->branch_id)
+                    // ->where('id', '!=', $user->id) // ← 自分を除外
+                    ->when($query, function($q) use ($query) {
+                        $q->where('name', 'like', "%{$query}%");
+                    })
+                    ->select('id', 'name', 'email', 'role')
+                    ->orderBy('name', 'asc')
+                    ->get();
+
+        return response()->json([
+            'success' => true,
+            'users' => $users
+        ]);
+    }
+
+    /**
      * 自分の情報取得
      */
     public function show($id)
@@ -44,7 +68,6 @@ class UserController extends Controller
                 'lang' => $targetUser->lang,
                 'notify_email' => $targetUser->notify_email,
                 'notify_my_schedule' => $targetUser->notify_my_schedule,
-                'notify_all_schedule' => $targetUser->notify_all_schedule,
             ]
         ]);
     }
@@ -102,7 +125,7 @@ class UserController extends Controller
     }
 
     /**
-     * 設定変更（通知・言語）
+     * 設定変更(通知・言語)
      */
     public function updateSettings(Request $request, $id)
     {
@@ -119,7 +142,6 @@ class UserController extends Controller
             'lang' => 'nullable|in:en,jp',
             'notify_email' => 'nullable|boolean',
             'notify_my_schedule' => 'nullable|boolean',
-            'notify_all_schedule' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -133,7 +155,6 @@ class UserController extends Controller
             'lang',
             'notify_email',
             'notify_my_schedule',
-            'notify_all_schedule'
         ]));
 
         return response()->json([

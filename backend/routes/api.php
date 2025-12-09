@@ -18,19 +18,19 @@ Route::get('/test', function () {
     ]);
 });
 
-// ==================== 認証API（認証不要） ====================
+// ==================== 認証API(認証不要) ====================
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/password-reset', [PasswordResetController::class, 'sendResetEmail']);
 Route::post('/password-update', [PasswordResetController::class, 'resetPassword']);
 
-// ==================== 部屋API（公開） ====================
+// ==================== 部屋API(公開) ====================
 Route::get('/rooms', [RoomController::class, 'index']);
 
-// ==================== 予約API（一覧は公開） ====================
+// ==================== 予約API(一覧は公開) ====================
 Route::get('/events', [EventController::class, 'index']);
 
-// ==================== 認証API（認証必須） ====================
+// ==================== 認証API(認証必須) ====================
 Route::middleware('auth:sanctum')->group(function () {
     // 認証
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -38,28 +38,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/refresh', [AuthController::class, 'refresh']);
 
     // ユーザー情報
+    Route::get('/users/branch', [UserController::class, 'getBranchUsers']);
     Route::get('/users/{id}', [UserController::class, 'show']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::put('/users/{id}/settings', [UserController::class, 'updateSettings']);
     Route::post('/users/{id}/password', [UserController::class, 'changePassword']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
     
-    // 予約（CRUD）
+    // 予約(CRUD)
     Route::post('/events', [EventController::class, 'store']);
     Route::put('/events/{id}', [EventController::class, 'update']);
     Route::delete('/events/{id}', [EventController::class, 'destroy']);
     
-    // 部屋管理（admin専用）
+    // 部屋管理(admin専用)
     Route::post('/rooms', [RoomController::class, 'store']);
     Route::put('/rooms/{id}', [RoomController::class, 'update']);
     Route::delete('/rooms/{id}', [RoomController::class, 'destroy']);
 
-    // 管理者専用API
+    // ユーザー管理(admin専用)
     Route::get('/admin/users', [AdminController::class, 'getAllUsers']);
     Route::patch('/admin/users/{id}/role', [AdminController::class, 'changeRole']);
     Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
 
     // 通知
     Route::get('/notifications/my-schedule', [NotificationController::class, 'getMyScheduleNotifications']);
-    Route::get('/notifications/all-rooms', [NotificationController::class, 'getAllRoomsNotifications']);
 });

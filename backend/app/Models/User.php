@@ -21,7 +21,7 @@ class User extends Authenticatable
         'lang',
         'notify_email',
         'notify_my_schedule',
-        'notify_all_schedule',
+        // 'notify_all_schedule',
     ];
 
     protected $hidden = [
@@ -32,7 +32,7 @@ class User extends Authenticatable
     protected $casts = [
         'notify_email' => 'boolean',
         'notify_my_schedule' => 'boolean',
-        'notify_all_schedule' => 'boolean',
+        // 'notify_all_schedule' => 'boolean',
     ];
 
     // リレーション

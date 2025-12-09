@@ -1,11 +1,11 @@
-会議室予約が完了しました
+{!! $greeting !!}
 
-予約者: {{ $organizerName }}
-会議室: {{ $roomName }}
-日時: {{ $startTime }} 〜 {{ $endTime }}
-@if($memo)
-メモ: {{ $memo }}
-@endif
+{!! $body !!}
 
-この予約の変更・キャンセルは、会議室予約システムから行ってください。
-{{ env('FRONTEND_URL') }}/my-bookings
+【{!! $details !!}】
+{!! $organizerLabel !!}: {{ $organizerName }}
+{!! $roomLabel !!}: {{ $roomName }}
+{!! $datetimeLabel !!}: {{ $startTime }}〜{{ $endTime }}
+{!! $memoLabel !!}: {{ $memo }}
+
+{!! $footer !!}

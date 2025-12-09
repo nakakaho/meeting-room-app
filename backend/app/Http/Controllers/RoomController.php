@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Room\RoomStoreRequest;
+use App\Http\Requests\Room\RoomUpdateRequest;
 use App\Models\Room;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class RoomController extends Controller
 {
@@ -13,16 +14,9 @@ class RoomController extends Controller
      */
     public function index(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'branch_id' => 'required|exists:branches,branch_id',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         $rooms = Room::where('branch_id', $request->branch_id)->get();
 
@@ -35,27 +29,13 @@ class RoomController extends Controller
     /**
      * 部屋追加（admin専用）
      */
-    public function store(Request $request)
+    public function store(RoomStoreRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'branch_id' => 'required|exists:branches,branch_id',
-            'room_name' => 'required|string|max:20',
-            'capacity' => 'required|integer|min:0',
-            'facility' => 'nullable|string|max:150',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         $room = Room::create($request->all());
 
         return response()->json([
             'success' => true,
-            'message' => '部屋を追加しました',
+            'message' => __('messages.room.created'),
             'room_id' => $room->room_id
         ], 201);
     }
@@ -63,35 +43,22 @@ class RoomController extends Controller
     /**
      * 部屋編集（admin専用）
      */
-    public function update(Request $request, $id)
+    public function update(RoomUpdateRequest $request, $id)
     {
         $room = Room::find($id);
 
         if (!$room) {
             return response()->json([
                 'success' => false,
-                'message' => '部屋が見つかりません'
+                'message' => __('messages.room.not_found')
             ], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'room_name' => 'required|string|max:20',
-            'capacity' => 'required|integer|min:0',
-            'facility' => 'nullable|string|max:150',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
         }
 
         $room->update($request->all());
 
         return response()->json([
             'success' => true,
-            'message' => '部屋を更新しました'
+            'message' => __('messages.room.updated')
         ]);
     }
 
@@ -105,7 +72,7 @@ class RoomController extends Controller
         if (!$room) {
             return response()->json([
                 'success' => false,
-                'message' => '部屋が見つかりません'
+                'message' => __('messages.room.not_found')
             ], 404);
         }
 
@@ -113,7 +80,7 @@ class RoomController extends Controller
         if ($room->events()->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => '予約がある部屋は削除できません'
+                'message' => __('messages.room.has_reservations')
             ], 400);
         }
 
@@ -121,7 +88,7 @@ class RoomController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '部屋を削除しました'
+            'message' => __('messages.room.deleted')
         ]);
     }
 }

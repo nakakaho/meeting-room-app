@@ -1,9 +1,10 @@
-会議室予約がキャンセルされました
+{!! $greeting !!}
 
-予約者: {{ $organizerName }}
-会議室: {{ $roomName }}
-日時: {{ $startTime }} 〜 {{ $endTime }}
+{!! $body !!}
 
-この予約はキャンセルされました。
+【{!! $details !!}】
+{!! $organizerLabel !!}: {{ $organizerName }}
+{!! $roomLabel !!}: {{ $roomName }}
+{!! $datetimeLabel !!}: {{ $startTime }}〜{{ $endTime }}
 
-{{ env('FRONTEND_URL') }}
+{!! $footer !!}

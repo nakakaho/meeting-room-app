@@ -127,6 +127,12 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'delete_old_reservations' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/delete-old-reservations.log'),
+            'level' => 'info',
+        ],
+
     ],
 
 ];

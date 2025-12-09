@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; // ← 追加
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
@@ -13,26 +14,13 @@ class AuthController extends Controller
     /**
      * ログイン
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
             
-            // 「無期限＋複数端末で安全動作」の tokens が作れる
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
@@ -44,7 +32,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'メールアドレスまたはパスワードが正しくありません'
+            'message' => __('messages.auth.failed') // ← 修正
         ], 401);
     }
 
@@ -57,7 +45,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'ログアウトしました'
+            'message' => __('messages.auth.logged_out') // ← 修正
         ]);
     }
 
@@ -81,14 +69,12 @@ class AuthController extends Controller
         if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => '認証が必要です'
+                'message' => __('messages.auth.unauthorized') // ← 修正
             ], 401);
         }
 
-        // 現在の端末の token を削除
         $request->user()->currentAccessToken()->delete();
 
-        // 新規 token
         $newToken = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -100,22 +86,8 @@ class AuthController extends Controller
     /**
      * ユーザー登録
      */
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:50',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-            'branch_id' => 'required|exists:branches,branch_id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -124,7 +96,6 @@ class AuthController extends Controller
             'role' => 'user',
         ]);
 
-        // トークン発行（有効期限はconfig/sanctum.phpで設定）
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

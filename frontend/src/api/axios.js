@@ -1,19 +1,17 @@
-import axios from 'axios'; 
+import axios from 'axios';
+import i18n from '../i18n'; // ✅ 追加
 
-// Laravel APIのベースURL
 const BASE_URL = 'http://127.0.0.1:8000/api';
 
-// Axiosインスタンス作成
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  withCredentials: false, // Cookie 不要
+  withCredentials: false,
 });
 
-// リクエストインターセプター（トークン自動付与）
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
@@ -22,12 +20,14 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // ✅ 言語ヘッダー自動付与
+    config.headers['Accept-Language'] = i18n.language === 'ja' ? 'ja' : 'en';
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// レスポンスインターセプター（リフレッシュ処理）
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -50,13 +50,10 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401) {
-
-      // ログイン系はスキップ
       if (originalRequest.url.includes('/login') || originalRequest.url.includes('/register')) {
         return Promise.reject(error);
       }
 
-      // 二重リフレッシュ防止
       if (originalRequest._retry) {
         localStorage.clear();
         window.location.href = '/login';
@@ -84,6 +81,7 @@ api.interceptors.response.use(
           {
             headers: {
               Authorization: `Bearer ${token}`,
+              'Accept-Language': i18n.language === 'ja' ? 'ja' : 'en', // ✅ 追加
             },
           }
         );
@@ -93,7 +91,6 @@ api.interceptors.response.use(
         if (!newToken) throw new Error('Token missing in refresh response');
 
         localStorage.setItem('auth_token', newToken);
-
         processQueue(null, newToken);
 
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -101,7 +98,6 @@ api.interceptors.response.use(
 
         return api(originalRequest);
       } catch (refreshError) {
-
         processQueue(refreshError, null);
         isRefreshing = false;
 

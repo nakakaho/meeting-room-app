@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Box, TextField, Button, Typography, Container, Paper, Alert } from '@mui/material';
-import axios from 'axios';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../contexts/AuthContext';
 
 const ForgotPasswordPage = () => {
+  const { t } = useTranslation();
+  const { forgotPassword } = useAuth();
+
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
@@ -15,29 +19,23 @@ const ForgotPasswordPage = () => {
     setMessage({ type: '', text: '' });
     setResetUrl('');
 
-    try {
-      const response = await axios.post(
-        'http://localhost/meeting-room-app/backend/public/api/password-reset',
-        { email }
-      );
-      
-      setMessage({ 
-        type: 'success', 
-        text: 'パスワードリセットメールを送信しました。メールをご確認ください。' 
-      });
-      
-      // 開発環境用: リセットURLを表示
-      if (response.data.reset_url) {
-        setResetUrl(response.data.reset_url);
+    const result = await forgotPassword(email);
+
+    if (result.success) {
+      setMessage({ type: 'success', text: result.message });
+
+      // 開発環境の reset_url も受け取れるようにする（AuthContext 側で返す必要アリ）
+      if (result.reset_url) {
+        setResetUrl(result.reset_url);
       }
-    } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'メール送信に失敗しました' 
+    } else {
+      setMessage({
+        type: 'error',
+        text: result.message || t('auth.reset_email_failed'),
       });
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   return (
@@ -45,13 +43,13 @@ const ForgotPasswordPage = () => {
       <Box sx={{ mt: 8 }}>
         <Paper elevation={3} sx={{ p: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom align="center">
-            パスワードリセット
+            {t('auth.reset_password')}
           </Typography>
-          
+
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            登録済みのメールアドレスを入力してください。パスワードリセット用のリンクを送信します。
+            {t('auth.reset_password_instruction')}
           </Typography>
-          
+
           {message.text && (
             <Alert severity={message.type} sx={{ mb: 2 }}>
               {message.text}
@@ -61,25 +59,25 @@ const ForgotPasswordPage = () => {
           {resetUrl && (
             <Alert severity="info" sx={{ mb: 2 }}>
               <Typography variant="body2" gutterBottom>
-                開発環境用リンク（本番では表示されません）:
+                {t('auth.dev_reset_link')}
               </Typography>
-              <Link to={resetUrl.replace('http://localhost:5173', '')} style={{ wordBreak: 'break-all' }}>
+              <a href={resetUrl} style={{ wordBreak: 'break-all' }}>
                 {resetUrl}
-              </Link>
+              </a>
             </Alert>
           )}
-          
-          <form onSubmit={handleSubmit}>
+
+          <form onSubmit={handleSubmit} noValidate>
             <TextField
               fullWidth
-              label="メールアドレス"
+              label={t('auth.email')}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               margin="normal"
               required
             />
-            
+
             <Button
               type="submit"
               fullWidth
@@ -87,13 +85,13 @@ const ForgotPasswordPage = () => {
               sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
-              リセットメールを送信
+              {t('auth.send_reset_link')}
             </Button>
-            
+
             <Box sx={{ textAlign: 'center' }}>
               <Link to="/login" style={{ textDecoration: 'none' }}>
                 <Typography color="primary">
-                  ログイン画面に戻る
+                  {t('auth.back_to_login')}
                 </Typography>
               </Link>
             </Box>

@@ -10,63 +10,78 @@ import {
   Button,
   Select,
   MenuItem,
-  Chip,
   Box,
   Typography,
+  CircularProgress,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
-import { adminAPI } from '../../api';
+import { useTranslation } from 'react-i18next';
+import { useAdmin } from '../../contexts/AdminContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const UserManagement = () => {
+  const { t } = useTranslation();
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { users, getUsers, changeUserRole, deleteUser, loading } = useAdmin();
 
   useEffect(() => {
-    fetchUsers();
+    getUsers();
   }, []);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await adminAPI.getAllUsers();
-      setUsers(response.data.users);
-    } catch (error) {
-      console.error('ユーザー一覧の取得に失敗:', error);
-      alert('ユーザー一覧の取得に失敗しました');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleChangeRole = async (userId, newRole) => {
     try {
-      await adminAPI.changeRole(userId, newRole);
-      fetchUsers();
+      const result = await changeUserRole(userId, newRole);
+      if (!result.success) {
+        alert(result.message || t('admin.role_change_failed') || '権限変更に失敗しました');
+        getUsers();
+      }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || '権限変更に失敗しました';
+      const errorMessage = error.response?.data?.message || t('admin.role_change_failed') || '権限変更に失敗しました';
       alert(errorMessage);
-      fetchUsers(); // 元に戻す
+      getUsers();
     }
   };
 
   const handleDeleteUser = async (userId, userName) => {
-    if (!window.confirm(`${userName} を削除しますか？`)) return;
+    if (!window.confirm(t('admin.delete_user_confirm', { name: userName }) || `${userName} を削除しますか？`)) return;
 
     try {
-      await adminAPI.deleteUser(userId);
-      fetchUsers();
+      const result = await deleteUser(userId);
+      if (!result.success) {
+        alert(result.message || t('admin.delete_user_failed') || 'ユーザー削除に失敗しました');
+      }
     } catch (error) {
-      alert(error.response?.data?.message || 'ユーザー削除に失敗しました');
+      alert(error.response?.data?.message || t('admin.delete_user_failed') || 'ユーザー削除に失敗しました');
     }
   };
 
   if (loading) {
     return (
-      <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography>読み込み中...</Typography>
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '50vh',
+          gap: 3
+        }}
+      >
+        <CircularProgress 
+          size={30} 
+          thickness={3}
+          sx={{ color: 'primary.main' }}
+        />
+        <Typography variant="h6" color="text.secondary" sx={{ 
+          animation: 'pulse 1.5s ease-in-out infinite',
+          '@keyframes pulse': {
+            '0%, 100%': { opacity: 1 },
+            '50%': { opacity: 0.5 },
+          }
+        }}>
+          {t('common.loading')}
+        </Typography>
       </Box>
     );
   }
@@ -77,11 +92,11 @@ const UserManagement = () => {
         <TableHead>
           <TableRow>
             <TableCell>ID</TableCell>
-            <TableCell>名前</TableCell>
-            <TableCell>メールアドレス</TableCell>
-            <TableCell>権限</TableCell>
-            <TableCell>登録日</TableCell>
-            <TableCell align="center">操作</TableCell>
+            <TableCell>{t('admin.username')}</TableCell>
+            <TableCell>{t('user.email')}</TableCell>
+            <TableCell>{t('admin.role')}</TableCell>
+            <TableCell>{t('admin.registration_date')}</TableCell>
+            <TableCell align="center">{t('common.actions')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -95,10 +110,10 @@ const UserManagement = () => {
                   value={user.role}
                   onChange={(e) => handleChangeRole(user.id, e.target.value)}
                   size="small"
-                  disabled={user.id === currentUser?.id} // 自分自身のみ変更不可
+                  disabled={user.id === currentUser?.id}
                 >
-                  <MenuItem value="user">一般ユーザー</MenuItem>
-                  <MenuItem value="admin">管理者</MenuItem>
+                  <MenuItem value="user">{t('admin.user_role')}</MenuItem>
+                  <MenuItem value="admin">{t('admin.admin_role')}</MenuItem>
                 </Select>
               </TableCell>
               <TableCell>
@@ -112,7 +127,7 @@ const UserManagement = () => {
                     startIcon={<DeleteIcon />}
                     onClick={() => handleDeleteUser(user.id, user.name)}
                   >
-                    削除
+                    {t('common.delete')}
                   </Button>
                 )}
               </TableCell>

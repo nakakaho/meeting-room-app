@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Event\EventStoreRequest;
+use App\Http\Requests\Event\EventUpdateRequest;
 use App\Models\Event;
-use App\Models\Room;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\EventCreatedMail;
 use App\Mail\EventUpdatedMail;
 use App\Mail\EventCancelledMail;
+use Illuminate\Support\Facades\Log;
 
 class EventController extends Controller
 {
@@ -19,17 +20,10 @@ class EventController extends Controller
      */
     public function index(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'branch_id' => 'required|exists:branches,branch_id',
             'user_id' => 'nullable|exists:users,id',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         $query = Event::with(['organizer', 'room', 'attendees'])
                       ->where('branch_id', $request->branch_id);
@@ -82,25 +76,8 @@ class EventController extends Controller
     /**
      * 予約作成
      */
-    public function store(Request $request)
+    public function store(EventStoreRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'branch_id' => 'required|exists:branches,branch_id',
-            'room_id' => 'required|exists:rooms,room_id',
-            'start_time' => 'required|date_format:Y-m-d H:i:s',
-            'end_time' => 'required|date_format:Y-m-d H:i:s|after:start_time',
-            'attendees' => 'nullable|array',
-            'attendees.*' => 'integer|exists:users,id|distinct',
-            'memo' => 'nullable|string|max:150',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         // 15分単位チェック
         $startMinute = date('i', strtotime($request->start_time));
         $endMinute = date('i', strtotime($request->end_time));
@@ -108,18 +85,18 @@ class EventController extends Controller
         if (!in_array($startMinute, [0, 15, 30, 45]) || !in_array($endMinute, [0, 15, 30, 45])) {
             return response()->json([
                 'success' => false,
-                'message' => '予約時間は15分単位で指定してください'
+                'message' => __('messages.event.invalid_time_unit')
             ], 422);
         }
 
-        // ✅ DB::beginTransaction()の前にUTC変換を実行
+        // UTC変換
         try {
             $branch = \App\Models\Branch::find($request->branch_id);
             
             if (!$branch) {
                 return response()->json([
                     'success' => false,
-                    'message' => '拠点情報が見つかりません'
+                    'message' => __('messages.branch_not_found')
                 ], 404);
             }
 
@@ -134,13 +111,13 @@ class EventController extends Controller
             \Log::error('Time conversion error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => '時刻の変換に失敗しました: ' . $e->getMessage()
+                'message' => __('messages.time_conversion_error')
             ], 400);
         }
 
         DB::beginTransaction();
         try {
-            // ✅ 修正：重複チェック（UTC基準）
+            // 重複チェック（UTC基準）
             $overlap = Event::where('room_id', $request->room_id)
                 ->where('start_time', '<', $endTime)
                 ->where('end_time', '>', $startTime)
@@ -150,7 +127,7 @@ class EventController extends Controller
                 DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => 'この時間帯は既に予約されています'
+                    'message' => __('messages.event.time_conflict')
                 ], 400);
             }
             
@@ -176,7 +153,7 @@ class EventController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '予約を作成しました',
+                'message' => __('messages.event.created'),
                 'event_id' => $event->event_id
             ], 201);
 
@@ -186,7 +163,7 @@ class EventController extends Controller
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => '予約の作成に失敗しました: ' . $e->getMessage()
+                'message' => __('messages.event.creation_failed')
             ], 500);
         }
     }
@@ -194,14 +171,14 @@ class EventController extends Controller
     /**
      * 予約変更
      */
-    public function update(Request $request, $id)
+    public function update(EventUpdateRequest $request, $id)
     {
         $event = Event::find($id);
 
         if (!$event) {
             return response()->json([
                 'success' => false,
-                'message' => '予約が見つかりません'
+                'message' => __('messages.event.not_found')
             ], 404);
         }
 
@@ -210,24 +187,8 @@ class EventController extends Controller
         if ($event->organizer_id !== $user->id && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => '権限がありません'
+                'message' => __('messages.auth.forbidden')
             ], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'room_id' => 'required|exists:rooms,room_id',
-            'start_time' => 'required|date_format:Y-m-d H:i:s',
-            'end_time' => 'required|date_format:Y-m-d H:i:s|after:start_time',
-            'attendees' => 'nullable|array',
-            'attendees.*' => 'integer|exists:users,id|distinct',
-            'memo' => 'nullable|string|max:150',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
         }
 
         // 15分単位チェック
@@ -237,19 +198,18 @@ class EventController extends Controller
         if (!in_array($startMinute, [0, 15, 30, 45]) || !in_array($endMinute, [0, 15, 30, 45])) {
             return response()->json([
                 'success' => false,
-                'message' => '予約時間は15分単位で指定してください'
+                'message' => __('messages.event.invalid_time_unit')
             ], 422);
         }
 
-        // ✅ DB::beginTransaction()の前にUTC変換を実行
+        // UTC変換
         try {
-            // フロントから送られてきた時刻をUTCに変換（秒を切り捨て）
             $branch = \App\Models\Branch::find($event->branch_id);
             
             if (!$branch) {
                 return response()->json([
                     'success' => false,
-                    'message' => '拠点情報が見つかりません'
+                    'message' => __('messages.branch_not_found')
                 ], 404);
             }
 
@@ -264,13 +224,13 @@ class EventController extends Controller
             \Log::error('Time conversion error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => '時刻の変換に失敗しました: ' . $e->getMessage()
+                'message' => __('messages.time_conversion_error')
             ], 400);
         }
 
         DB::beginTransaction();
         try {
-            // ✅ 修正：重複チェック（自分以外、UTC基準）
+            // 重複チェック（自分以外、UTC基準）
             $overlap = Event::where('room_id', $request->room_id)
                 ->where('event_id', '!=', $id)
                 ->where('start_time', '<', $endTime)
@@ -281,7 +241,7 @@ class EventController extends Controller
                 DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => 'この時間帯は既に予約されています'
+                    'message' => __('messages.event.time_conflict')
                 ], 400);
             }
             
@@ -304,7 +264,7 @@ class EventController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '予約を更新しました'
+                'message' => __('messages.event.updated')
             ]);
 
         } catch (\Exception $e) {
@@ -313,7 +273,7 @@ class EventController extends Controller
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => '予約の更新に失敗しました: ' . $e->getMessage()
+                'message' => __('messages.event.update_failed')
             ], 500);
         }
     }
@@ -328,7 +288,7 @@ class EventController extends Controller
         if (!$event) {
             return response()->json([
                 'success' => false,
-                'message' => '予約が見つかりません'
+                'message' => __('messages.event.not_found')
             ], 404);
         }
 
@@ -337,7 +297,7 @@ class EventController extends Controller
         if ($event->organizer_id !== $user->id && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => '権限がありません'
+                'message' => __('messages.auth.forbidden')
             ], 403);
         }
 
@@ -356,41 +316,44 @@ class EventController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '予約をキャンセルしました'
+            'message' => __('messages.event.deleted')
         ]);
     }
 
     /**
-     * メール通知を送信
+     * メール通知を送信（多言語対応版）
+     * ✅ 予約者（organizer）のみに送信
      */
     private function sendEventNotifications($event, $type)
     {
-        $event->load(['organizer', 'room', 'attendees']);
+        $event->load(['organizer', 'room.branch']);
 
-        // 送信先リスト
-        $recipients = collect();
-
-        // 予約者
-        if ($event->organizer->notify_email) {
-            $recipients->push($event->organizer->email);
+        // ✅ 予約者のみが送信対象
+        if (!$event->organizer->notify_email) {
+            return; // 通知OFFの場合は送信しない
         }
 
-        // 参加者
-        foreach ($event->attendees as $attendee) {
-            if ($attendee->notify_email) {
-                $recipients->push($attendee->email);
-            }
-        }
-
-        $recipients = $recipients->unique();
+        $recipients = collect([
+            [
+                'email' => $event->organizer->email,
+                'lang' => $event->organizer->lang ?? 'jp',
+            ]
+        ]);
 
         // メール送信
-        foreach ($recipients as $email) {
+        foreach ($recipients as $recipient) {
             try {
+                // ✅ ユーザーの言語に合わせてメール送信
+                $locale = $recipient['lang'] === 'en' ? 'en' : 'ja';
+                
                 if ($type === 'created') {
-                    Mail::to($email)->send(new EventCreatedMail($event, $event->room, $event->organizer));
+                    Mail::to($recipient['email'])
+                        ->locale($locale) // ✅ 言語指定
+                        ->send(new EventCreatedMail($event, $event->room, $event->organizer, $locale));
                 } elseif ($type === 'updated') {
-                    Mail::to($email)->send(new EventUpdatedMail($event, $event->room, $event->organizer));
+                    Mail::to($recipient['email'])
+                        ->locale($locale)
+                        ->send(new EventUpdatedMail($event, $event->room, $event->organizer, $locale));
                 }
             } catch (\Exception $e) {
                 \Log::error('Mail send error: ' . $e->getMessage());
@@ -399,18 +362,28 @@ class EventController extends Controller
     }
 
     /**
-     * キャンセル通知を送信
+     * キャンセル通知を送信（多言語対応版）
+     * ✅ 予約者（organizer）のみに送信
      */
     private function sendCancellationNotifications($eventData)
     {
+        // ✅ 予約者のみが送信対象
+        if (!$eventData['organizer']->notify_email) {
+            return; // 通知OFFの場合は送信しない
+        }
+
         try {
+            // ✅ ユーザーの言語に合わせてメール送信
+            $locale = $eventData['organizer']->lang === 'en' ? 'en' : 'ja';
+            
             // 仮のEventオブジェクトを作成
             $tempEvent = new Event();
             $tempEvent->start_time = $eventData['start_time'];
             $tempEvent->end_time = $eventData['end_time'];
 
             Mail::to($eventData['organizer']->email)
-                ->send(new EventCancelledMail($tempEvent, $eventData['room'], $eventData['organizer']));
+                ->locale($locale) // ✅ 言語指定
+                ->send(new EventCancelledMail($tempEvent, $eventData['room'], $eventData['organizer'], $locale));
         } catch (\Exception $e) {
             \Log::error('Mail send error: ' . $e->getMessage());
         }

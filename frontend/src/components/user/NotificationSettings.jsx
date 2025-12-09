@@ -1,5 +1,4 @@
 // src/components/user/NotificationSettings.jsx
-
 import React, { useState } from 'react';
 import {
   Box,
@@ -13,10 +12,12 @@ import {
   Divider
 } from '@mui/material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import { useTranslation } from 'react-i18next';
 import notificationService from '../../api/notificationService';
 import api from '../../api/axios';
 
 function NotificationSettings({ user, onUpdate }) {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState({
     notify_email: user?.notify_email || false,
     notify_my_schedule: user?.notify_my_schedule || false,
@@ -28,11 +29,11 @@ function NotificationSettings({ user, onUpdate }) {
   const handlePermissionRequest = async () => {
     const granted = await notificationService.requestPermission();
     if (granted) {
-      setMessage({ type: 'success', text: 'デスクトップ通知が許可されました' });
+      setMessage({ type: 'success', text: t('notification.permission_granted') });
     } else {
       setMessage({ 
         type: 'error', 
-        text: 'デスクトップ通知が拒否されました。ブラウザの設定から許可してください。' 
+        text: t('notification.permission_denied')
       });
     }
   };
@@ -52,14 +53,14 @@ function NotificationSettings({ user, onUpdate }) {
       const response = await api.put(`/users/${user.id}/settings`, settings);
       
       if (response.data.success) {
-        setMessage({ type: 'success', text: '設定を保存しました' });
+        setMessage({ type: 'success', text: t('notification.settings_saved') });
         if (onUpdate) {
           onUpdate(settings);
         }
       }
     } catch (error) {
       console.error('設定保存エラー:', error);
-      setMessage({ type: 'error', text: '設定の保存に失敗しました' });
+      setMessage({ type: 'error', text: t('notification.settings_failed') });
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ function NotificationSettings({ user, onUpdate }) {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <NotificationsActiveIcon sx={{ mr: 1 }} />
           <Typography variant="h6">
-            通知設定
+            {t('notification.settings_title')}
           </Typography>
         </Box>
 
@@ -88,10 +89,10 @@ function NotificationSettings({ user, onUpdate }) {
             fullWidth
             startIcon={<NotificationsActiveIcon />}
           >
-            デスクトップ通知を許可
+            {t('notification.enable_desktop')}
           </Button>
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            ブラウザのデスクトップ通知を有効にします
+            {t('notification.enable_desktop_hint')}
           </Typography>
         </Box>
 
@@ -106,10 +107,10 @@ function NotificationSettings({ user, onUpdate }) {
                   onChange={handleChange('notify_email')}
                 />
               }
-              label="予約完了メール通知"
+              label={t('notification.email_notification')}
             />
             <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-              予約作成時にメールで通知します
+              {t('notification.email_notification_hint')}
             </Typography>
           </Box>
 
@@ -121,25 +122,10 @@ function NotificationSettings({ user, onUpdate }) {
                   onChange={handleChange('notify_my_schedule')}
                 />
               }
-              label="マイ予約デスクトップ通知（開始5分前）"
+              label={t('notification.my_schedule_notification')}
             />
             <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-              自分の予約開始5分前に通知します（クリックでMy予約一覧へ）
-            </Typography>
-          </Box>
-
-          <Box>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={settings.notify_all_schedule}
-                  onChange={handleChange('notify_all_schedule')}
-                />
-              }
-              label="全体利用状況デスクトップ通知"
-            />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-              現在利用中の会議室を通知します（クリックでカレンダーへ）
+              {t('notification.my_schedule_notification_hint')}
             </Typography>
           </Box>
         </Box>
@@ -151,7 +137,7 @@ function NotificationSettings({ user, onUpdate }) {
             fullWidth
             disabled={loading}
           >
-            {loading ? '保存中...' : '設定を保存'}
+            {loading ? t('notification.saving') : t('notification.save_settings')}
           </Button>
         </Box>
       </CardContent>

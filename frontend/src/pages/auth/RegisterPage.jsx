@@ -1,31 +1,40 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Box, TextField, Button, Typography, Container, Paper } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
+import ErrorDisplay from '../../components/common/ErrorDisplay';
 
 const RegisterPage = () => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [generalError, setGeneralError] = useState('');
   const [success, setSuccess] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setErrors({});
+    setGeneralError('');
     setSuccess('');
 
     const result = await register(name, email, password);
     
     if (result.success) {
-      setSuccess('登録完了！ログインページへ移動します...');
+      setSuccess(t('auth.registration_success'));
       setTimeout(() => {
         navigate('/login');
       }, 2000);
     } else {
-      setError(result.error);
+      if (result.errors) {
+        setErrors(result.errors);
+      } else {
+        setGeneralError(result.message);
+      }
     }
   };
 
@@ -34,13 +43,19 @@ const RegisterPage = () => {
       <Box sx={{ mt: 8 }}>
         <Paper elevation={3} sx={{ p: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom align="center">
-            新規登録
+            {t('auth.register')}
           </Typography>
           
-          <form onSubmit={handleSubmit}>
+          <ErrorDisplay 
+            errors={errors} 
+            generalError={generalError} 
+            successMessage={success}
+          />
+          
+          <form onSubmit={handleSubmit} noValidate>
             <TextField
               fullWidth
-              label="名前"
+              label={t('user.name')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               margin="normal"
@@ -49,7 +64,7 @@ const RegisterPage = () => {
 
             <TextField
               fullWidth
-              label="メールアドレス"
+              label={t('auth.email')}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -59,26 +74,14 @@ const RegisterPage = () => {
             
             <TextField
               fullWidth
-              label="パスワード（8〜12文字）"
+              label={t('auth.password_hint')}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               margin="normal"
               required
-              helperText="8文字以上12文字以内で入力してください"
+              helperText={t('user.password_helper')}
             />
-            
-            {error && (
-              <Typography color="error" sx={{ mt: 2 }}>
-                {error}
-              </Typography>
-            )}
-
-            {success && (
-              <Typography color="success.main" sx={{ mt: 2 }}>
-                {success}
-              </Typography>
-            )}
             
             <Button
               type="submit"
@@ -86,13 +89,13 @@ const RegisterPage = () => {
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
             >
-              登録
+              {t('auth.register')}
             </Button>
             
             <Box sx={{ textAlign: 'center' }}>
               <Link to="/login" style={{ textDecoration: 'none' }}>
                 <Typography color="primary">
-                  すでにアカウントをお持ちの方
+                  {t('auth.already_have_account')}
                 </Typography>
               </Link>
             </Box>

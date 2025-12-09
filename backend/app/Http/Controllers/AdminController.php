@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Admin\ChangeRoleRequest;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
@@ -18,7 +17,7 @@ class AdminController extends Controller
         if ($user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => '管理者権限が必要です'
+                'message' => __('messages.auth.admin_required')
             ], 403);
         }
 
@@ -43,34 +42,16 @@ class AdminController extends Controller
     /**
      * 権限変更（admin専用）
      */
-    public function changeRole(Request $request, $id)
+    public function changeRole(ChangeRoleRequest $request, $id)
     {
         $user = auth()->user();
-
-        if ($user->role !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => '管理者権限が必要です'
-            ], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'role' => 'required|in:user,admin',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         $targetUser = User::find($id);
 
         if (!$targetUser) {
             return response()->json([
                 'success' => false,
-                'message' => 'ユーザーが見つかりません'
+                'message' => __('messages.user.not_found')
             ], 404);
         }
 
@@ -78,7 +59,7 @@ class AdminController extends Controller
         if ($targetUser->id === $user->id) {
             return response()->json([
                 'success' => false,
-                'message' => '自分自身の権限は変更できません'
+                'message' => __('messages.user.cannot_change_own_role')
             ], 400);
         }
 
@@ -91,7 +72,7 @@ class AdminController extends Controller
             if ($adminCount <= 1) {
                 return response()->json([
                     'success' => false,
-                    'message' => '最後の管理者です。管理者は最低1人必要です。'
+                    'message' => __('messages.user.last_admin')
                 ], 400);
             }
         }
@@ -100,7 +81,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '権限を変更しました'
+            'message' => __('messages.role.changed')
         ]);
     }
 
@@ -114,7 +95,7 @@ class AdminController extends Controller
         if ($user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => '管理者権限が必要です'
+                'message' => __('messages.auth.admin_required')
             ], 403);
         }
 
@@ -123,7 +104,7 @@ class AdminController extends Controller
         if (!$targetUser) {
             return response()->json([
                 'success' => false,
-                'message' => 'ユーザーが見つかりません'
+                'message' => __('messages.user.not_found')
             ], 404);
         }
 
@@ -131,7 +112,7 @@ class AdminController extends Controller
         if ($targetUser->id === $user->id) {
             return response()->json([
                 'success' => false,
-                'message' => '自分自身は削除できません'
+                'message' => __('messages.user.cannot_delete_self')
             ], 400);
         }
 
@@ -139,7 +120,7 @@ class AdminController extends Controller
         if ($targetUser->role === 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => '管理者アカウントは削除できません'
+                'message' => __('messages.user.cannot_delete_admin')
             ], 400);
         }
 
@@ -147,7 +128,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'ユーザーを削除しました'
+            'message' => __('messages.user.deleted')
         ]);
     }
 }

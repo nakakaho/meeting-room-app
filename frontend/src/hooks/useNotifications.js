@@ -1,142 +1,147 @@
+// src/hooks/useNotifications.js — 統合版
+
 import { useEffect, useRef } from 'react';
 import api from '../api/axios';
+import notificationService from '../api/notificationService';
 
 export const useNotifications = (user) => {
-  const notifiedEventsRef = useRef(new Set());
-  const lastAllRoomsNotifyRef = useRef(null);
+  // マイ予約用：通知済みイベントIDを記録
+  const notifiedMyEventsRef = useRef(new Set());
+  
+  // 全室用：差分検知
+  const prevActiveIdsRef = useRef(new Set());
+  const lastAllEmptyNotifiedRef = useRef(false);
 
-  // 通知権限をリクエスト
-  const requestPermission = async () => {
-    if (!('Notification' in window)) {
-      console.log('このブラウザは通知をサポートしていません');
-      return false;
-    }
-
-    if (Notification.permission === 'granted') {
-      return true;
-    }
-
-    if (Notification.permission !== 'denied') {
-      const permission = await Notification.requestPermission();
-      return permission === 'granted';
-    }
-
-    return false;
-  };
-
-  // デスクトップ通知を表示
-  const showNotification = (title, body) => {
-    if (Notification.permission === 'granted') {
-      new Notification(title, {
-        body,
-        icon: '/favicon.ico',
-        tag: 'meeting-room-notification',
-      });
-    }
-  };
-
-  // マイスケジュール通知をチェック
-  const checkMyScheduleNotifications = async () => {
-    console.log('📅 マイスケジュール通知チェック開始', { 
-      notify_my_schedule: user?.notify_my_schedule 
-    });
-    
+  // ========================================
+  // マイ予約通知（5分前）
+  // ========================================
+  const checkMySchedule = async () => {
     if (!user?.notify_my_schedule) return;
 
     try {
-      const response = await api.get('/notifications/my-schedule');
-      const notifications = response.data.notifications;
+      const res = await api.get('/notifications/my-schedule');
+      if (!res.data.success) return;
 
-      console.log('📬 取得した通知:', notifications);
+      const events = res.data.events || [];
 
-      notifications.forEach((notif) => {
-        const key = `my_schedule_${notif.event_id}`;
+      events.forEach(event => {
+        const eventId = event.event_id;
         
-        console.log('🔔 通知チェック:', { 
-          key, 
-          alreadyNotified: notifiedEventsRef.current.has(key) 
-        });
+        // 既に通知済みならスキップ
+        if (notifiedMyEventsRef.current.has(eventId)) return;
+
+        // 通知表示
+        notificationService.showMyScheduleNotification(event);
         
-        // まだ通知していない場合のみ通知
-        if (!notifiedEventsRef.current.has(key)) {
-          console.log('✅ 通知を表示:', notif.title, notif.body);
-          showNotification(notif.title, notif.body);
-          notifiedEventsRef.current.add(key);
-        }
+        // 通知済みマーク
+        notifiedMyEventsRef.current.add(eventId);
       });
-    } catch (error) {
-      console.error('通知の取得に失敗:', error);
+    } catch (err) {
+      console.error('マイ予約通知チェックエラー:', err);
     }
   };
 
-  // 全室利用状況通知をチェック
-  const checkAllRoomsNotifications = async () => {
-    console.log('🏢 全室利用状況通知チェック開始', {
-      notify_all_schedule: user?.notify_all_schedule
-    });
-    
-    if (!user?.notify_all_schedule) return;
+  // ========================================
+  // 全室利用状況通知（差分検知型）
+  // ========================================
+  // const checkAllRooms = async () => {
+  //   if (!user?.notify_all_schedule) return;
 
-    const now = new Date();
-    
-    console.log('⏰ 現在時刻:', now.toLocaleTimeString(), '分:', now.getMinutes());
-    
-    // 前回の通知から15分経過していない場合はスキップ
-    if (lastAllRoomsNotifyRef.current) {
-      const diff = (now - lastAllRoomsNotifyRef.current) / 1000 / 60;
-      console.log('⏱️ 前回の通知からの経過時間:', diff, '分');
-      if (diff < 15) return;
-    }
+  //   try {
+  //     const res = await api.get('/notifications/all-rooms');
+  //     if (!res.data.success) return;
 
-    // 15分刻みの時刻でない場合はスキップ
-    const minutes = now.getMinutes();
-    if (minutes % 15 !== 0) {
-      console.log('⏳ 15分刻みの時刻ではありません');
-      return;
-    }
+  //     const activeEvents = res.data.events || [];
+  //     const activeIds = new Set(activeEvents.map(e => e.event_id));
 
-    try {
-      const response = await api.get('/notifications/all-rooms');
-      const notifications = response.data.notifications;
+  //     // 新規開始イベント
+  //     const started = [...activeIds].filter(id => !prevActiveIdsRef.current.has(id));
+      
+  //     // 終了イベント
+  //     const ended = [...prevActiveIdsRef.current].filter(id => !activeIds.has(id));
 
-      console.log('📬 取得した全室通知:', notifications);
+  //     // 開始通知
+  //     started.forEach(id => {
+  //       const event = activeEvents.find(e => e.event_id === id);
+  //       if (!event) return;
 
-      if (notifications.length > 0) {
-        const notif = notifications[0];
-        console.log('✅ 全室通知を表示:', notif.title, notif.body);
-        showNotification(notif.title, notif.body);
-        lastAllRoomsNotifyRef.current = now;
-      }
-    } catch (error) {
-      console.error('通知の取得に失敗:', error);
-    }
+  //       const tz = event.timezone ?? user.branch?.timezone ?? 'UTC';
+  //       const start = new Date(event.start_time).toLocaleTimeString('ja-JP', {
+  //         hour: '2-digit',
+  //         minute: '2-digit',
+  //         hour12: false,
+  //         timeZone: tz
+  //       });
+  //       const end = new Date(event.end_time).toLocaleTimeString('ja-JP', {
+  //         hour: '2-digit',
+  //         minute: '2-digit',
+  //         hour12: false,
+  //         timeZone: tz
+  //       });
+
+  //       notificationService.showAllRoomsNotification({
+  //         title: '会議室利用開始',
+  //         body: `${event.room_name} ${start}〜${end}\n予約者: ${event.organizer_name ?? ''}`
+  //       });
+  //     });
+
+  //     // 終了通知
+  //     if (ended.length > 0) {
+  //       notificationService.showAllRoomsNotification({
+  //         title: '会議室利用終了',
+  //         body: '会議室の利用が終了しました'
+  //       });
+  //     }
+
+  //     // 全室空室検知
+  //     if (activeIds.size === 0 && !lastAllEmptyNotifiedRef.current) {
+  //       notificationService.showAllRoomsNotification({
+  //         title: '会議室状況',
+  //         body: '現在、利用中の会議室はありません'
+  //       });
+  //       lastAllEmptyNotifiedRef.current = true;
+  //     } else if (activeIds.size > 0) {
+  //       lastAllEmptyNotifiedRef.current = false;
+  //     }
+
+  //     // 次回の差分検知用に保存
+  //     prevActiveIdsRef.current = activeIds;
+  //   } catch (err) {
+  //     console.error('全室通知チェックエラー:', err);
+  //   }
+  // };
+
+  // ========================================
+  // 統合チェック実行
+  // ========================================
+  const checkNotifications = async () => {
+    await Promise.all([
+      checkMySchedule(),
+      // checkAllRooms()
+    ]);
   };
 
   useEffect(() => {
     if (!user) return;
 
-    // 初回に通知権限をリクエスト
-    requestPermission();
+    // 権限リクエスト
+    notificationService.requestPermission();
 
-    // マイスケジュール通知: 1分ごとにチェック
-    const myScheduleInterval = setInterval(() => {
-      checkMyScheduleNotifications();
-    }, 60000); // 1分
+    // 初回チェック
+    checkNotifications();
 
-    // 全室利用状況通知: 1分ごとにチェック（内部で15分刻み判定）
-    const allRoomsInterval = setInterval(() => {
-      checkAllRoomsNotifications();
-    }, 60000); // 1分
+    // // 1分ごとにチェック
+    // const interval = setInterval(checkNotifications, 60 * 1000);
+    
+    // 🔥 開発時は10秒ごと、本番は60秒ごと
+    const isDev = import.meta.env.DEV;
+    const interval = setInterval(
+      checkNotifications, 
+      isDev ? 10 * 1000 : 60 * 1000
+    );
 
-    // 初回実行
-    checkMyScheduleNotifications();
-    checkAllRoomsNotifications();
-
-    return () => {
-      clearInterval(myScheduleInterval);
-      clearInterval(allRoomsInterval);
-    };
+    return () => clearInterval(interval);
   }, [user]);
 
-  return { requestPermission, showNotification };
+  return { requestPermission: notificationService.requestPermission };
 };
